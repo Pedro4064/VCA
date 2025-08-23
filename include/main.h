@@ -1,0 +1,1 @@
+#define MAX_VOLTAGE 3300 /* Max voltage capable of being read in mV*/
