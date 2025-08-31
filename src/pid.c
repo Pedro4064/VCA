@@ -11,7 +11,7 @@ char pid_integral_windup_check(pid_controller* pid_con){
 
 
 void pid_compute_actuator_command(pid_controller* pid_con){
-    int previous_error_value = pid_con->error_value;
+    float previous_error_value = pid_con->error_value;
     pid_con->error_value = pid_con->target_value - pid_con->controlled_value;
 
     pid_con->actuator_effort = pid_con->kp * pid_con->error_value;

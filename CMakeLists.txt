@@ -28,6 +28,8 @@ set(
 ## Main Compilation
 add_executable(main ${SRC_FILES})
 target_include_directories(main PUBLIC ${INCLUDE_DIR})
+target_link_libraries(main PRIVATE m)
+
 
 ## Verification Command
 # If it fails you may need to init OPAM again: 
