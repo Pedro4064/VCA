@@ -40,6 +40,6 @@ add_custom_target(
 
 add_custom_target(
     verify_cli
-    COMMAND frama-c -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-rte
+    COMMAND frama-c -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-model real -wp-prover alt-ergo,z3,cvc5 
     COMMENT "Running Frama-C wp and rte plugins on all files built"
     )
