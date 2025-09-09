@@ -1,12 +1,8 @@
 #include <limits.h>
-#include "main.h"
+//#include "main.h"
 
-/*@
-    ensures \result == a+b;
-*/
-int add(int a, int b){
-    return a+b;
-}
+#define MAX_VOLTAGE 3300 /* Max voltage capable of being read in mV*/
+
 /*@
     logic integer sum_to_index(int* values, integer index) =
         (index < 0)? 0:
@@ -19,6 +15,7 @@ int add(int a, int b){
 /*@
     requires valid_array: \valid_read(values+(0..length-1));
     requires valid_length: 0<=length<=50;
+    requires valid_range: \forall integer i; 0<=i<length ==> 0<=values[i]<=MAX_VOLTAGE;
 
     assigns \nothing;
 
@@ -29,6 +26,7 @@ int sum(int* values, int length){
       /*@
         loop invariant 0 <= i <= length;
         loop invariant result == (i == 0 ? 0 : sum_to_index(values, i - 1));
+        loop invariant overflow_protection: result <= i*MAX_VOLTAGE;
         loop assigns result, i;
         loop variant length - i;
     */
@@ -38,12 +36,6 @@ int sum(int* values, int length){
     return result;
 }
 
-/*@
-    ensures \result == (float)(a+b);
-*/
-float f_add(int a, int b){
-    return a+b;
-}
 
 /*@
     predicate valid_array_r(int* array, unsigned int length) =
