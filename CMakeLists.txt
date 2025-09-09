@@ -36,12 +36,12 @@ target_link_libraries(main PRIVATE m)
 # opam init && eval $(opam env)
 add_custom_target(
     verify
-    COMMAND frama-c-gui -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-prover z3,alt-ergo
+    COMMAND frama-c-gui -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-model real -wp-prover alt-ergo,z3,cvc5 -wp-rte
     COMMENT "Running Frama-C wp and rte plugins on all files built"
     )
 
 add_custom_target(
     verify_cli
-    COMMAND frama-c -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-model real -wp-prover alt-ergo,z3,cvc5 
+    COMMAND frama-c -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-model real -wp-prover alt-ergo,z3,cvc5 -wp-rte
     COMMENT "Running Frama-C wp and rte plugins on all files built"
     )

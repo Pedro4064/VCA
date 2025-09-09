@@ -1,7 +1,6 @@
 #include <limits.h>
-//#include "main.h"
+#include "main.h"
 
-#define MAX_VOLTAGE 3300 /* Max voltage capable of being read in mV*/
 
 /*@
     logic integer sum_to_index(int* values, integer index) =
