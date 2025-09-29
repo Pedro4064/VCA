@@ -12,9 +12,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ## Project Variables
 set(SRC_FILES 
-    ${CMAKE_SOURCE_DIR}/src/main.c 
+    # ${CMAKE_SOURCE_DIR}/src/main.c 
     ${CMAKE_SOURCE_DIR}/src/pid.c
-    ${CMAKE_SOURCE_DIR}/src/filter.c
+    # ${CMAKE_SOURCE_DIR}/src/filter.c
     )
 set(
     INCLUDE_DIR 
@@ -36,12 +36,18 @@ target_link_libraries(main PRIVATE m)
 # opam init && eval $(opam env)
 add_custom_target(
     verify
-    COMMAND frama-c-gui -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-model real -wp-prover alt-ergo,z3,cvc5 -wp-rte
+    COMMAND frama-c-gui -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-model float -wp-prover alt-ergo,z3,cvc5 -wp-rte -rte
+    COMMENT "Running Frama-C wp and rte plugins on all files built"
+    )
+
+add_custom_target(
+    verify_rte
+    COMMAND frama-c-gui -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-model real -wp-prover alt-ergo,z3,cvc5 -wp-rte -rte -eva -main test
     COMMENT "Running Frama-C wp and rte plugins on all files built"
     )
 
 add_custom_target(
     verify_cli
-    COMMAND frama-c -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-model real -wp-prover alt-ergo,z3,cvc5 -wp-rte
+    COMMAND frama-c -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-model float -wp-prover alt-ergo,z3,cvc5 -wp-rte
     COMMENT "Running Frama-C wp and rte plugins on all files built"
     )
