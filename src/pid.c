@@ -1,24 +1,38 @@
 #include "pid.h"
 #include <float.h>
+#include "main.h"
 
 #define SIGN(x) (x>0?1:-1)
 #define FLOAT_TOL_ 0.1f
-
-/*@ 
-    requires valid_pointer: \valid(pid_con); 
-    assigns \nothing;
-*/
-char pid_integral_windup_check(pid_controller* pid_con){
-    char is_actuator_sat = (pid_con->actuator_effort >= pid_con->controller_saturation);
-    char is_controller_counteracting = (SIGN(pid_con->actuator_effort) != SIGN(pid_con->error_value));
-
-    return (is_actuator_sat && !is_controller_counteracting);
-}
 
 /*@
     predicate float_finite_and_in_range(float val, float low_bound, float up_bound) = 
         \is_finite(val) && (low_bound <= val <= up_bound);
 */
+
+/*@ 
+    requires valid_pointer: \valid(pid_con); 
+    requires valid_Ts: float_finite_and_in_range(pid_con->Ts, 0.01f, 1.0f);
+    requires valid_previous_error: float_finite_and_in_range(previous_error_value, (float)-3300, (float)3300);
+    requires valid_error: float_finite_and_in_range(pid_con->error_value, (float)(-3300.0-FLOAT_TOL_), (float)(3300.0f+FLOAT_TOL_));
+    requires valid_integrator_ub: float_finite_and_in_range(pid_con->error_integral_ub, 0.0f, (float)(2000.0f*0.5f*3300.0f));
+    requires valid_integrator_lb: float_finite_and_in_range(pid_con->error_integral_lb, (float)((-20.0f/0.01)*0.5f*(float)MAX_VOLTAGE), 0.0f);
+    requires valid_integrator_error: float_finite_and_in_range(pid_con->error_integral, pid_con->error_integral_lb, pid_con->error_integral_ub);
+
+    assigns pid_con->error_integral;
+    ensures (float)pid_con->error_integral_lb <= (float)pid_con->error_integral <= (float)pid_con->error_integral_ub;
+*/
+void pid_integral_error(pid_controller* pid_con, float previous_error_value){
+    float current_integral = pid_con->Ts * ((previous_error_value + pid_con->error_value)/2);
+    if(pid_con->error_integral + current_integral > pid_con->error_integral_ub)
+        pid_con->error_integral = pid_con->error_integral_ub;
+    else if(pid_con->error_integral + current_integral < pid_con->error_integral_lb)
+        pid_con->error_integral = pid_con->error_integral_lb;
+    else 
+        pid_con->error_integral += current_integral;
+}
+
+
 
 /*@
     requires valid_pointer: \valid(pid_con);
@@ -29,6 +43,9 @@ char pid_integral_windup_check(pid_controller* pid_con){
     requires valid_ki: float_finite_and_in_range(pid_con->ki, 0.0f, 100.0f);
     requires valid_kd: float_finite_and_in_range(pid_con->kd, 0.0f, 100.0f);
     requires valid_Ts: float_finite_and_in_range(pid_con->Ts, 0.01f, 1.0f);
+    requires valid_integrator_ub: float_finite_and_in_range(pid_con->error_integral_ub, 0.0f, (float)(2000.0f*0.5f*3300.0f));
+    requires valid_integrator_lb: float_finite_and_in_range(pid_con->error_integral_lb, (float)((-20.0f/0.01)*0.5f*(float)MAX_VOLTAGE), 0.0f);
+    requires valid_integrator_error: float_finite_and_in_range(pid_con->error_integral, pid_con->error_integral_lb, pid_con->error_integral_ub);
 */
 void pid_compute_actuator_command(pid_controller* pid_con){
     float previous_error_value = pid_con->error_value;
@@ -55,14 +72,14 @@ void pid_compute_actuator_command(pid_controller* pid_con){
     float derivative_contribution = pid_con->kd * (error_derivative);
     //@ assert derivative_gain_range: (float)0.0<=pid_con->kd<=(float)100.0;
     //@ assert derivative_contr_range: (float)((-660000.0-2*FLOAT_TOL_)*100.0)<=derivative_contribution<=(float)((660000.0+2*FLOAT_TOL_)*100.0);
-
     pid_con->actuator_effort += derivative_contribution;
 
-    if(!pid_integral_windup_check(pid_con)){
-        pid_con->error_integral += pid_con->Ts * ((previous_error_value + pid_con->error_value)/2);
-        pid_con->actuator_effort += pid_con->ki * pid_con->error_integral;
-    }
+    pid_integral_error(pid_con, previous_error_value);
+    //@ assert error_integral_range: (float)pid_con->error_integral_lb <= (float)pid_con->error_integral <= (float)pid_con->error_integral_ub;
+    float integral_contribution = pid_con->ki * pid_con->error_integral;
+    //@ assert integral_contr_range: (float)(100.0f * pid_con->error_integral_lb)<= integral_contribution <= (float)(100.0f * pid_con->error_integral_ub);
 
+    pid_con->actuator_effort += integral_contribution;
     pid_con->actuator_effort = (pid_con->actuator_effort>pid_con->controller_saturation)?pid_con->controller_saturation:pid_con->actuator_effort;
     
 }

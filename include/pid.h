@@ -7,6 +7,8 @@ typedef struct PID_CONTROLLER {
   float controlled_value;      /* Value of the controlled variable */
   float error_value;           /* Error between target and controlled value */
   float error_integral;        /* Integral of the error */
+  float error_integral_ub;     /* Upper bound of error integral */
+  float error_integral_lb;     /* Lower bound of error integral */
   float actuator_effort;       /* Value for the actuator effort */
   float Ts;                    /* Controller sampling/update period, in ms */
 } pid_controller;
