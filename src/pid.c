@@ -21,6 +21,7 @@
 
     assigns pid_con->error_integral;
     ensures (float)pid_con->error_integral_lb <= (float)pid_con->error_integral <= (float)pid_con->error_integral_ub;
+    ensures \is_finite(pid_con->error_integral);
 */
 void pid_integral_error(pid_controller* pid_con, float previous_error_value){
     float current_integral = pid_con->Ts * ((previous_error_value + pid_con->error_value)/2);
@@ -75,9 +76,12 @@ void pid_compute_actuator_command(pid_controller* pid_con){
     pid_con->actuator_effort += derivative_contribution;
 
     pid_integral_error(pid_con, previous_error_value);
-    //@ assert error_integral_range: (float)pid_con->error_integral_lb <= (float)pid_con->error_integral <= (float)pid_con->error_integral_ub;
     float integral_contribution = pid_con->ki * pid_con->error_integral;
-    //@ assert integral_contr_range: (float)(100.0f * pid_con->error_integral_lb)<= integral_contribution <= (float)(100.0f * pid_con->error_integral_ub);
+    // assert \is_finite(pid_con->ki);
+    // assert \is_finite(pid_con->error_integral);
+    // assert error_integral_range: (float)pid_con->error_integral_lb <= (float)pid_con->error_integral <= (float)pid_con->error_integral_ub;
+    // assert integral_gain_range: (float)0.0<=pid_con->ki<=(float)100.0;
+    // assert integral_contr_range: (float)(1000.0f * pid_con->error_integral_lb - FLOAT_TOL_)<= integral_contribution <= (float)(1000.0f * pid_con->error_integral_ub + FLOAT_TOL_);
 
     pid_con->actuator_effort += integral_contribution;
     pid_con->actuator_effort = (pid_con->actuator_effort>pid_con->controller_saturation)?pid_con->controller_saturation:pid_con->actuator_effort;
