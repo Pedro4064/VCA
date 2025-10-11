@@ -8,6 +8,9 @@
 /*@
     predicate float_finite_and_in_range(float val, float low_bound, float up_bound) = 
         \is_finite(val) && (low_bound <= val <= up_bound);
+
+    logic float integral(float a, float b, float delta_x) = 
+        (float)(delta_x * ((a + b)/2));
 */
 
 /*@ 
@@ -22,6 +25,19 @@
     assigns pid_con->error_integral;
     ensures (float)pid_con->error_integral_lb <= (float)pid_con->error_integral <= (float)pid_con->error_integral_ub;
     ensures \is_finite(pid_con->error_integral);
+
+    behavior integrator_ub:
+        assumes pid_con->error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts) > pid_con->error_integral_ub;
+        ensures pid_con->error_integral == pid_con->error_integral_ub;
+    behavior integrator_lb:
+        assumes pid_con->error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts) < pid_con->error_integral_lb;
+        ensures pid_con->error_integral == pid_con->error_integral_lb;
+    behavior integrator_ok:
+        assumes pid_con->error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts) <= pid_con->error_integral_ub &&
+                pid_con->error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts) >= pid_con->error_integral_lb;
+        ensures pid_con->error_integral == \old(pid_con->error_integral) + integral(pid_con->error_value, previous_error_value, pid_con->Ts);
+    complete behaviors;
+    disjoint behaviors;
 */
 void pid_integral_error(pid_controller* pid_con, float previous_error_value){
     float current_integral = pid_con->Ts * ((previous_error_value + pid_con->error_value)/2);
