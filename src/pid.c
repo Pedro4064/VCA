@@ -51,11 +51,16 @@ void pid_integral_error(pid_controller* pid_con, float previous_error_value){
 void pid_compute_actuator_command(pid_controller* pid_con){
     float previous_error_value = pid_con->error_value;
     pid_con->error_value = pid_con->target_value - pid_con->controlled_value;
-    //@ assert error_value_range: (float)(-3300.0-FLOAT_TOL_)<=pid_con->error_value<=(3300.0f+FLOAT_TOL_);
+    //@ ghost float error_value_range_ub = 3300.0f+FLOAT_TOL_;
+    //@ ghost float error_value_range_lb = -3300.0f-FLOAT_TOL_;
+    //@ assert error_value_range: error_value_range_lb <=pid_con->error_value<=error_value_range_ub;
 
     float proportional_contribution = pid_con->kp * pid_con->error_value;
     pid_con->actuator_effort = proportional_contribution;
-    //@ assert proportional_contribution_range: (float)((-3300.0-FLOAT_TOL_)*100.0)<=proportional_contribution<=(float)((3300.0f+FLOAT_TOL_)*100.0);
+    //@ ghost float prop_contr_ub = (3300.0f+FLOAT_TOL_)*100.0f;
+    //@ ghost float prop_contr_lb = (-3300.0-FLOAT_TOL_)*100.0f;
+    //@ assert prop_contr_range: prop_contr_lb<=proportional_contribution<=prop_contr_ub;
+    //@ assert prop_contr_act_eff_range: prop_contr_lb<=pid_con->actuator_effort<=prop_contr_ub;
 
     /* 
         The range for error_value is (-3300,3300), and therefore previous_error-value
@@ -71,19 +76,28 @@ void pid_compute_actuator_command(pid_controller* pid_con){
     float error_derivative = (error_diff)/pid_con->Ts;
     //@ assert error_derivative_range: (float)(-660000-FLOAT_TOL_)<=error_derivative<=(float)(660000+FLOAT_TOL_);
     float derivative_contribution = pid_con->kd * (error_derivative);
-    //@ assert derivative_gain_range: (float)0.0<=pid_con->kd<=(float)100.0;
-    //@ assert derivative_contr_range: (float)((-660000.0-2*FLOAT_TOL_)*100.0)<=derivative_contribution<=(float)((660000.0+2*FLOAT_TOL_)*100.0);
+    //@ ghost float deriv_contr_ub = (660000.0f+2*FLOAT_TOL_)*100.0f;
+    //@ ghost float deriv_contr_lb = (-660000.0f-2*FLOAT_TOL_)*100.0f;
+    //@ assert deriv_contr_range: deriv_contr_lb<=derivative_contribution<=deriv_contr_ub;
     pid_con->actuator_effort += derivative_contribution;
+    //@ assert deriv_contr_act_eff_range: deriv_contr_lb+prop_contr_lb<=pid_con->actuator_effort<=deriv_contr_ub+prop_contr_ub;
 
     pid_integral_error(pid_con, previous_error_value);
     float integral_contribution = pid_con->ki * pid_con->error_integral;
     // assert \is_finite(pid_con->ki);
     // assert \is_finite(pid_con->error_integral);
-    // assert error_integral_range: (float)pid_con->error_integral_lb <= (float)pid_con->error_integral <= (float)pid_con->error_integral_ub;
     // assert integral_gain_range: (float)0.0<=pid_con->ki<=(float)100.0;
-    // assert integral_contr_range: (float)(1000.0f * pid_con->error_integral_lb - FLOAT_TOL_)<= integral_contribution <= (float)(1000.0f * pid_con->error_integral_ub + FLOAT_TOL_);
+
+    //@ ghost float integ_contr_ub = 100.0f * pid_con->error_integral_ub;
+    //@ ghost float integ_contr_lb = 100.0f * pid_con->error_integral_lb;
+    //@ assert error_integral_range: (float)pid_con->error_integral_lb <= (float)pid_con->error_integral <= (float)pid_con->error_integral_ub;
+    //@ assert integral_contr_range: integ_contr_lb<= integral_contribution <= integ_contr_ub;
+    //@ assert \is_finite(pid_con->actuator_effort);
+    //@ assert \is_finite(integral_contribution);
 
     pid_con->actuator_effort += integral_contribution;
+    // assert integ_contr_act_eff_range:  deriv_contr_lb+prop_contr_lb+integ_contr_lb<=pid_con->actuator_effort<=deriv_contr_ub+prop_contr_ub+integ_contr_ub;
+
     pid_con->actuator_effort = (pid_con->actuator_effort>pid_con->controller_saturation)?pid_con->controller_saturation:pid_con->actuator_effort;
     
 }
