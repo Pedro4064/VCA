@@ -65,6 +65,11 @@
         (pid_effort(pid_con, previous_error_value) > pid_con->controller_saturation) ? 
             pid_con->controller_saturation :
             maxf(pid_effort(pid_con, previous_error_value), 0.0f);
+
+  logic float bounded_integrator(pid_controller* pid_con, float old_error_integral, float previous_error_value) =
+        (old_error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts) > pid_con->error_integral_ub) ? pid_con->error_integral_ub :
+        (old_error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts) < pid_con->error_integral_lb) ? pid_con->error_integral_lb :
+        (float)(old_error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts));
 */
 
 
@@ -109,6 +114,18 @@ void pid_integral_error(pid_controller* pid_con, float previous_error_value){
         0.0f <= ((x >= max) ? max : ((x < 0.0f) ? 0.0f : x)) <= max;
 */
 
+/*
+    ensures \let e = (pid_con->target_value - pid_con->controlled_value);
+            \let p = pid_con->kp * e;
+            \let d = pid_con->kd * (e - \old(pid_con->error_value)) / pid_con->Ts;
+            \let e_int = \old(pid_con->error_integral) + pid_con->Ts * ((e + \old(pid_con->error_value))/2);
+            \let bounded_e_int = (e_int>pid_con->error_integral_ub)? pid_con->error_integral_ub : ( (e_int<pid_con->error_integral_lb)? pid_con->error_integral_lb : e_int);
+            \let i = pid_con->ki * bounded_e_int;
+            \let effort = (float)(p + i + d);
+            (pid_con->actuator_effort == ((effort > pid_con->controller_saturation) ? pid_con->controller_saturation : maxf(0.0f, effort)));
+
+
+*/
 
 /*@
     requires valid_pointer: \valid(pid_con);
@@ -128,6 +145,8 @@ void pid_integral_error(pid_controller* pid_con, float previous_error_value){
     assigns pid_con->error_value;
     assigns pid_con->error_integral;
 
+    ensures pid_con->error_value == pid_con->target_value - pid_con->controlled_value;
+    ensures pid_con->error_integral == bounded_integrator(pid_con, \old(pid_con->error_integral), \old(pid_con->error_value));
     ensures 0.0f<=pid_con->actuator_effort <= pid_con->controller_saturation;
 */
 void pid_compute_actuator_command(pid_controller* pid_con){
