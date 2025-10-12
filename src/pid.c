@@ -148,6 +148,15 @@ void pid_integral_error(pid_controller* pid_con, float previous_error_value){
     ensures pid_con->error_value == pid_con->target_value - pid_con->controlled_value;
     ensures pid_con->error_integral == bounded_integrator(pid_con, \old(pid_con->error_integral), \old(pid_con->error_value));
     ensures 0.0f<=pid_con->actuator_effort <= pid_con->controller_saturation;
+    ensures \let e = (pid_con->target_value - pid_con->controlled_value);
+            \let p = pid_con->kp * e;
+            \let d = pid_con->kd * ((e - \old(pid_con->error_value)) / pid_con->Ts);
+            \let i = pid_con->ki * bounded_integrator(pid_con, \old(pid_con->error_integral), \old(pid_con->error_value));
+            \let effort = (float)(p + i + d);
+            (pid_con->actuator_effort == ((effort >= pid_con->controller_saturation) ? pid_con->controller_saturation : 
+                                         ((effort < 0.0f) ? 0.0f : effort)));
+
+
 */
 void pid_compute_actuator_command(pid_controller* pid_con){
     float previous_error_value = pid_con->error_value;
