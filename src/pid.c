@@ -7,9 +7,6 @@
 #define FLOAT_TOL_ 0.1f
 
 /*@
-    logic float maxf(float a, float b) = (a > b) ? a : b;
-
-    logic float minf(float a, float b) = (a < b) ? a : b;
 
     logic float integral(float a, float b, float delta_x) = 
         (float)(delta_x * ((a + b)/2));
@@ -19,53 +16,8 @@
 
 */
 
-/*
-    logic float error_integral(pid_controller* pid_con) = 
-        (float)(\old(pid_con->error_integral) + 
-        integral(pid_con->error_value, (float)(pid_con.target_value - pid_con.controlled_value), pid_con.Ts));
-
-    logic float max(float a, float b) = 
-        (a>b)?a:b;
-
-    logic float min(float a, float b) = 
-        (a>b)?b:a;
-
-    logic float bounded_integral(pid_controller pid_con) = 
-        (error_integral(pid_con)>pid_con.error_integral_ub)? pid_con.error_integral_ub :
-                                                              max(error_integral(pid_con), pid_con.error_integral_lb);
-
-    logic float pid_effort(pid_controller pid_con) = 
-        (float) (pid_con.kp * (pid_con.target_value - pid_con.controlled_value) + 
-                 pid_con.ki * bounded_integral(pid_con) + 
-                 pid_con.kd * (pid_con->target_value - pid_con->controlled_value)/pid_con->Ts);
-
-    logic float bounded_pid_effort(pid_controller* pid_con) = 
-        (pid_effort(pid_con) > pid_con->controller_saturation)?pid_con->controller_saturation:
-                                                               max(pid_effort(pid_con), 0.0f);
-*/
-
 /*@ 
-    logic float error_integral(pid_controller* pid_con, float previous_error_value) =
-        (float)(pid_con->error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts));
-
     
-    logic float bounded_error_integral(pid_controller* pid_con, float previous_error_value) =
-        (error_integral(pid_con, previous_error_value) > pid_con->error_integral_ub) ?
-            pid_con->error_integral_ub :
-        (error_integral(pid_con, previous_error_value) < pid_con->error_integral_lb) ?
-            pid_con->error_integral_lb :
-            error_integral(pid_con, previous_error_value);
-
-    logic float pid_effort(pid_controller* pid_con, float previous_error_value) =
-        (float)(pid_con->kp * (pid_con->target_value - pid_con->controlled_value)
-              + pid_con->ki * bounded_error_integral(pid_con, previous_error_value)
-              + pid_con->kd * ((pid_con->error_value - previous_error_value) / pid_con->Ts));
-
-    logic float bounded_pid_effort(pid_controller* pid_con, float previous_error_value) =
-        (pid_effort(pid_con, previous_error_value) > pid_con->controller_saturation) ? 
-            pid_con->controller_saturation :
-            maxf(pid_effort(pid_con, previous_error_value), 0.0f);
-
   logic float bounded_integrator(pid_controller* pid_con, float old_error_integral, float previous_error_value) =
         (old_error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts) > pid_con->error_integral_ub) ? pid_con->error_integral_ub :
         (old_error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts) < pid_con->error_integral_lb) ? pid_con->error_integral_lb :
@@ -109,23 +61,6 @@ void pid_integral_error(pid_controller* pid_con, float previous_error_value){
         pid_con->error_integral += current_integral;
 }
 
-/* lemma clamp_range:
-      \forall float x, float max;
-        0.0f <= ((x >= max) ? max : ((x < 0.0f) ? 0.0f : x)) <= max;
-*/
-
-/*
-    ensures \let e = (pid_con->target_value - pid_con->controlled_value);
-            \let p = pid_con->kp * e;
-            \let d = pid_con->kd * (e - \old(pid_con->error_value)) / pid_con->Ts;
-            \let e_int = \old(pid_con->error_integral) + pid_con->Ts * ((e + \old(pid_con->error_value))/2);
-            \let bounded_e_int = (e_int>pid_con->error_integral_ub)? pid_con->error_integral_ub : ( (e_int<pid_con->error_integral_lb)? pid_con->error_integral_lb : e_int);
-            \let i = pid_con->ki * bounded_e_int;
-            \let effort = (float)(p + i + d);
-            (pid_con->actuator_effort == ((effort > pid_con->controller_saturation) ? pid_con->controller_saturation : maxf(0.0f, effort)));
-
-
-*/
 
 /*@
     requires valid_pointer: \valid(pid_con);
