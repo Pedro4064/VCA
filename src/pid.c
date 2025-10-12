@@ -3,15 +3,70 @@
 #include "main.h"
 
 #define SIGN(x) (x>0?1:-1)
+#define MAX(x, y) ((x>y)?x:y)
 #define FLOAT_TOL_ 0.1f
 
 /*@
-    predicate float_finite_and_in_range(float val, float low_bound, float up_bound) = 
-        \is_finite(val) && (low_bound <= val <= up_bound);
+    logic float maxf(float a, float b) = (a > b) ? a : b;
+
+    logic float minf(float a, float b) = (a < b) ? a : b;
 
     logic float integral(float a, float b, float delta_x) = 
         (float)(delta_x * ((a + b)/2));
+
+    predicate float_finite_and_in_range(float val, float low_bound, float up_bound) = 
+        \is_finite(val) && (low_bound <= val <= up_bound);
+
 */
+
+/*
+    logic float error_integral(pid_controller* pid_con) = 
+        (float)(\old(pid_con->error_integral) + 
+        integral(pid_con->error_value, (float)(pid_con.target_value - pid_con.controlled_value), pid_con.Ts));
+
+    logic float max(float a, float b) = 
+        (a>b)?a:b;
+
+    logic float min(float a, float b) = 
+        (a>b)?b:a;
+
+    logic float bounded_integral(pid_controller pid_con) = 
+        (error_integral(pid_con)>pid_con.error_integral_ub)? pid_con.error_integral_ub :
+                                                              max(error_integral(pid_con), pid_con.error_integral_lb);
+
+    logic float pid_effort(pid_controller pid_con) = 
+        (float) (pid_con.kp * (pid_con.target_value - pid_con.controlled_value) + 
+                 pid_con.ki * bounded_integral(pid_con) + 
+                 pid_con.kd * (pid_con->target_value - pid_con->controlled_value)/pid_con->Ts);
+
+    logic float bounded_pid_effort(pid_controller* pid_con) = 
+        (pid_effort(pid_con) > pid_con->controller_saturation)?pid_con->controller_saturation:
+                                                               max(pid_effort(pid_con), 0.0f);
+*/
+
+/*@ 
+    logic float error_integral(pid_controller* pid_con, float previous_error_value) =
+        (float)(pid_con->error_integral + integral(pid_con->error_value, previous_error_value, pid_con->Ts));
+
+    
+    logic float bounded_error_integral(pid_controller* pid_con, float previous_error_value) =
+        (error_integral(pid_con, previous_error_value) > pid_con->error_integral_ub) ?
+            pid_con->error_integral_ub :
+        (error_integral(pid_con, previous_error_value) < pid_con->error_integral_lb) ?
+            pid_con->error_integral_lb :
+            error_integral(pid_con, previous_error_value);
+
+    logic float pid_effort(pid_controller* pid_con, float previous_error_value) =
+        (float)(pid_con->kp * (pid_con->target_value - pid_con->controlled_value)
+              + pid_con->ki * bounded_error_integral(pid_con, previous_error_value)
+              + pid_con->kd * ((pid_con->error_value - previous_error_value) / pid_con->Ts));
+
+    logic float bounded_pid_effort(pid_controller* pid_con, float previous_error_value) =
+        (pid_effort(pid_con, previous_error_value) > pid_con->controller_saturation) ? 
+            pid_con->controller_saturation :
+            maxf(pid_effort(pid_con, previous_error_value), 0.0f);
+*/
+
 
 /*@ 
     requires valid_pointer: \valid(pid_con); 
@@ -49,12 +104,17 @@ void pid_integral_error(pid_controller* pid_con, float previous_error_value){
         pid_con->error_integral += current_integral;
 }
 
+/* lemma clamp_range:
+      \forall float x, float max;
+        0.0f <= ((x >= max) ? max : ((x < 0.0f) ? 0.0f : x)) <= max;
+*/
 
 
 /*@
     requires valid_pointer: \valid(pid_con);
     requires valid_target_value: float_finite_and_in_range(pid_con->target_value, 0.0f, 3300.0f);
     requires valid_controlled_value: float_finite_and_in_range(pid_con->controlled_value, 0.0f, 3300.0f);
+    requires valid_saturation_value: float_finite_and_in_range(pid_con->controller_saturation, 0.0f, 3300.0f);
     requires valid_error: float_finite_and_in_range(pid_con->error_value, (float)-3300.0, 3300.0f);
     requires valid_kp: float_finite_and_in_range(pid_con->kp, 0.0f, 100.0f);
     requires valid_ki: float_finite_and_in_range(pid_con->ki, 0.0f, 100.0f);
@@ -63,6 +123,12 @@ void pid_integral_error(pid_controller* pid_con, float previous_error_value){
     requires valid_integrator_ub: float_finite_and_in_range(pid_con->error_integral_ub, 0.0f, (float)(2000.0f*0.5f*3300.0f));
     requires valid_integrator_lb: float_finite_and_in_range(pid_con->error_integral_lb, (float)((-20.0f/0.01)*0.5f*(float)MAX_VOLTAGE), 0.0f);
     requires valid_integrator_error: float_finite_and_in_range(pid_con->error_integral, pid_con->error_integral_lb, pid_con->error_integral_ub);
+
+    assigns pid_con->actuator_effort;
+    assigns pid_con->error_value;
+    assigns pid_con->error_integral;
+
+    ensures 0.0f<=pid_con->actuator_effort <= pid_con->controller_saturation;
 */
 void pid_compute_actuator_command(pid_controller* pid_con){
     float previous_error_value = pid_con->error_value;
@@ -114,6 +180,19 @@ void pid_compute_actuator_command(pid_controller* pid_con){
     pid_con->actuator_effort += integral_contribution;
     // assert integ_contr_act_eff_range:  deriv_contr_lb+prop_contr_lb+integ_contr_lb<=pid_con->actuator_effort<=deriv_contr_ub+prop_contr_ub+integ_contr_ub;
 
-    pid_con->actuator_effort = (pid_con->actuator_effort>pid_con->controller_saturation)?pid_con->controller_saturation:pid_con->actuator_effort;
-    
+    // pid_con->actuator_effort = (pid_con->actuator_effort>=pid_con->controller_saturation)?
+                                    // pid_con->controller_saturation:MAX(pid_con->actuator_effort, 0.0f);
+    if (pid_con->actuator_effort >= pid_con->controller_saturation) {
+        pid_con->actuator_effort = pid_con->controller_saturation;
+        //@ assert  pid_con->actuator_effort == pid_con->controller_saturation;
+        //@ assert 0.0f <= pid_con->actuator_effort <= pid_con->controller_saturation;
+    } else if (pid_con->actuator_effort < 0.0f) {
+        pid_con->actuator_effort = 0.0f;
+        //@ assert  pid_con->actuator_effort == 0;
+        //@ assert 0.0f <= pid_con->actuator_effort <= pid_con->controller_saturation;
+    } else {
+        pid_con->actuator_effort = pid_con->actuator_effort;
+        //@ assert 0.0f <= pid_con->actuator_effort <= pid_con->controller_saturation;
+    }
+    //@ assert 0.0f <= pid_con->actuator_effort <= pid_con->controller_saturation;
 }
