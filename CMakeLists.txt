@@ -51,3 +51,9 @@ add_custom_target(
     COMMAND frama-c -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 30 -wp-model float -wp-prover alt-ergo,z3,cvc5 -wp-rte
     COMMENT "Running Frama-C wp and rte plugins on all files built"
     )
+
+add_custom_target(
+    verify_functional_cli
+    COMMAND frama-c -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 100 -wp-model real -wp-prover alt-ergo,z3,cvc5
+    COMMENT "Running Frama-C wp and rte plugins on all files built"
+    )
