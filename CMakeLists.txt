@@ -12,9 +12,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 ## Project Variables
 set(SRC_FILES 
-    # ${CMAKE_SOURCE_DIR}/src/main.c 
-    ${CMAKE_SOURCE_DIR}/src/pid.c
-    # ${CMAKE_SOURCE_DIR}/src/filter.c
+    ${CMAKE_SOURCE_DIR}/src/main.c 
+    # ${CMAKE_SOURCE_DIR}/src/pid.c
+    ${CMAKE_SOURCE_DIR}/src/filter.c
     )
 set(
     INCLUDE_DIR 
@@ -45,6 +45,13 @@ add_custom_target(
     COMMAND frama-c-gui -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -wp -wp-timeout 100 -wp-model real -wp-prover alt-ergo,z3,cvc5
     COMMENT "Running Frama-C wp and rte plugins on all files built"
     )
+
+add_custom_target(
+    verify_rte_eva
+    COMMAND frama-c-gui -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -eva -main main -eva-use-spec burst_sample_adc
+    COMMENT "Running Frama-C wp and rte plugins on all files built"
+    )
+
 
 add_custom_target(
     verify_cli
