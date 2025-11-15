@@ -13,8 +13,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 ## Project Variables
 set(SRC_FILES 
     # ${CMAKE_SOURCE_DIR}/src/main.c 
-    ${CMAKE_SOURCE_DIR}/src/pid.c
-    # ${CMAKE_SOURCE_DIR}/src/filter.c
+    # ${CMAKE_SOURCE_DIR}/src/pid.c
+    ${CMAKE_SOURCE_DIR}/src/filter.c
     )
 set(
     INCLUDE_DIR 
