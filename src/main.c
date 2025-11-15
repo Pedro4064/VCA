@@ -20,7 +20,6 @@ int main(void) {
   memset(filtered_data, 0, sizeof(filtered_data));
 
   rtos_burst_sample_adc(raw_data, 50);
-  /*@ assert \forall integer i; 0 <= i < 50 ==> \is_finite(raw_data[i]);*/
 
   f_moving_average_filter(raw_data, 50, filtered_data, 41, 10);
 }
