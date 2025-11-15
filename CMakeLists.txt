@@ -48,7 +48,7 @@ add_custom_target(
 
 add_custom_target(
     verify_rte_eva
-    COMMAND frama-c-gui -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -eva -main main -eva-use-spec burst_sample_adc
+    COMMAND frama-c-gui -json-compilation-database ${COMPILE_COMMANDS_JSON_PATH} ${SRC_FILES} -eva -main main 
     COMMENT "Running Frama-C wp and rte plugins on all files built"
     )
 
